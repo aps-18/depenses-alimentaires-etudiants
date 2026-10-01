@@ -1,0 +1,1284 @@
+
+# Partie A:
+
+## 1) Importation des données 
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+```
+
+```{r}
+data1 <- read_excel("~/Desktop/Documents/FAC/M1/CM économétrie linéaire avancée/cc/data_V2.xlsx")
+```
+
+## 2) Nettoyage de la base de données 
+
+```{r}
+data1$AIDE_FI <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$AIDE_FI)))
+data1$SALAIRE <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$SALAIRE)))
+data1$LOYER <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$LOYER)))
+data1$H_ETUDE <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$H_ETUDE)))
+data1$H_TRAVAIL <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$H_TRAVAIL)))
+data1$H_SPORT <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$H_SPORT)))
+data1$R_CUISINE <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$R_CUISINE)))
+data1$R_RU <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$R_RU)))
+data1$TRAJET <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$TRAJET)))
+data1$TRAJET_RU <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$TRAJET_RU)))
+data1$R_EXT <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$R_EXT)))
+data1$ATTENTE_RU <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$ATTENTE_RU)))
+data1$ECO_CONS <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$ECO_CONS)))
+data1$AGE <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$AGE)))
+
+
+```
+
+### Sauvegarde de la base de donnée "nettoyé"
+
+```{r}
+library(writexl)
+write_xlsx(data1, path = "~/Desktop/Documents/FAC/M1/CM économétrie linéaire avancée/cc/data_V2_propre.xlsx")
+
+data <- read_excel("~/Desktop/Documents/FAC/M1/CM économétrie linéaire avancée/cc/data_V2_propre.xlsx")
+```
+
+
+### Modification des variables
+
+```{r}
+library(dplyr)
+
+data$M_BOURSE <- recode(data$ECHELON,
+  "Non boursier" = 0,
+  "0 bis" = 145,
+  "1" = 216,
+  "2" = 307,
+  "3" = 383,
+  "4" = 459,
+  "5" = 521,
+  "6" = 551,
+  "7" = 634
+)
+```
+
+#### Création et modification des variables
+
+```{r}
+data$R_CUISINE <- round(as.numeric(data$R_CUISINE) * 4.34)
+
+data$R_RU <- round(as.numeric(data$R_RU) * 4.34)
+
+
+data$R_EXT <- round(as.numeric(data$R_EXT) * 4.34)
+
+
+
+data$ECO_CONS <- round(as.numeric(data$ECO_CONS) * 4.34)
+
+
+
+```
+
+
+```{r}
+library(car)
+library(carData)
+library(dplyr)
+
+data$DEPENSE <- as.numeric(car::recode(data$DEPENSE, "
+  '0-49€' = 25;
+  '50-99€' = 75;
+  '100-149€' = 125;
+  '150-199€' = 175;
+  '200-249€' = 225;
+  '250-299€' = 275;
+  '300-349€' = 325;
+  '350-399€' = 375;
+  '400-449€' = 425;
+  '450-500€' = 475;
+  '>500€' = 525;
+  'Pas de dépenses' = 0
+"))
+```
+
+
+### Création de la variable qualitative sportif, bouriser et emploi 
+
+```{r}
+data$SPORTIF <- as.factor(ifelse(data$H_SPORT >= 5, "Oui", "Non"))
+
+data$BOURSIER <- as.factor(ifelse(data$ECHELON == "Non boursier",
+                                  "Non",
+                                  "Oui"))
+
+data$EMPLOI <- as.factor(ifelse(data$SALAIRE >0,
+                                "Oui",
+                                "Non"))
+```
+
+### Vérification facteur/numérique 
+
+```{r}
+var_facteur <- c("ETUDIANT", "ALTERNANT", "REVENU", "ECHELON",
+                    "VEGE", "RELI", "CUISINE", "GENRE", "AIDE_ALI", "PRIX_RU",
+                    "ETUDE", "SPORTIF", "BOURSIER", "EMPLOI")
+
+data[var_facteur] <- lapply(data[var_facteur], as.factor)
+
+var_numérique <- setdiff(names(data), var_facteur)
+data[var_numérique] <- lapply(data[var_numérique], as.numeric)
+
+```
+
+### Suppressions des non étudiants 
+
+```{r}
+data <- data[data$ETUDIANT != "Non", ]
+```
+
+
+#----------------------------
+#Partie B : Analyse descriptive
+
+## Analyse decriptive univarié 
+
+## 01) Variables qualitatives
+
+
+
+### Emploi, Boursier, Alternant, Niveau d'étude 
+```{r}
+library(ggplot2)
+library(dplyr)
+
+data |> 
+  count(EMPLOI) |> 
+  ggplot() +
+  aes(
+    x="",
+    y=n,
+    fill=EMPLOI
+      ) +
+  geom_bar(stat = "identity") +
+  ggtitle("Part d'étudiant ayant un emploi dans la population étudiée") +
+  coord_polar("y")
+
+data |> 
+  count(BOURSIER) |> 
+  ggplot() +
+  aes(
+    x="",
+    y=n,
+    fill=BOURSIER
+      ) +
+  geom_bar(stat = "identity") +
+  ggtitle("Part de boursier dans la population étudiée") +
+  coord_polar("y")
+
+
+data |> 
+  count(ALTERNANT) |> 
+  ggplot() +
+  aes(
+    x="",
+    y=n,
+    fill=ALTERNANT
+      ) +
+  geom_bar(stat = "identity") +
+  ggtitle("Part d'alternant dans la population étudiée") +
+  coord_polar("y")
+
+data |> 
+  count(ETUDE) |> 
+  ggplot() +
+  aes(
+    x="",
+    y=n,
+    fill=ETUDE
+      ) +
+  geom_bar(stat = "identity") +
+  ggtitle("Part d'alternant dans la population étudiée") +
+  coord_polar("y") +
+  theme_classic() +
+  scale_fill_manual(values = c("1"="blue", "2"="lightyellow", "3"="blueviolet", "4"="mediumturquoise", "5"="orchid3"))
+
+table(data$REVENU)
+
+```
+
+## 02) Variables quantitatives
+
+### Age, Salaire, Aide financière,  
+```{r}
+hist(data$AGE,
+     main = "Distribution des âges",
+     xlab = "Âge",
+     col = "lightblue",
+     border = "white")
+```
+
+
+
+
+
+```{r}
+data |>
+  summarise(
+    across(
+      .cols = where(is.numeric),     
+      .fns  = list(
+        Moyenne    = ~mean(.x, na.rm = TRUE),
+        Médiane    = ~median(.x, na.rm = TRUE),
+        Minimum    = ~min(.x, na.rm = TRUE),
+        Maximum    = ~max(.x, na.rm = TRUE),
+        `Ecart-type` = ~sd(.x, na.rm = TRUE)
+      ),
+      .names = "{.col} {fn}"         
+    )
+  ) |>
+  pivot_longer(everything(),
+               names_to = "name",
+               values_to = "value") |>
+  separate_wider_delim(
+    name,
+    delim = " ",
+    names = c("Variable", "Mesure")
+  ) |>
+  mutate(value = round(value, 4)) |>
+  pivot_wider(
+    names_from  = Mesure,          
+    values_from = value
+  )
+```
+
+
+## 03) Boites à moustaches 
+
+
+```{r}
+
+data |> 
+  pivot_longer(
+    cols = c(var_numérique),
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+
+data |> 
+  pivot_longer(
+    cols = AGE,
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+
+
+data |> 
+  pivot_longer(
+    cols = c("LOYER", "AIDE_FI", "DEPENSE", "SALAIRE"),
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+
+
+data |> 
+  pivot_longer(
+    cols = c("H_SPORT", "H_ETUDE", "H_TRAVAIL"),
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+
+data |> 
+  pivot_longer(
+    cols = c("TRAJET", "TRAJET_RU"),
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+
+data |> 
+  pivot_longer(
+    cols = c("PARTAGE", "R_CUISINE", "R_EXT", "R_RU"),
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+
+var_numérique
+```
+Pour M_BOURSE ce ne sont pas des valeurs atypiques simplement des valeurs de bourses élevés (échelon haut)
+
+
+
+#### 3.a) Test GRUBBS
+```{r}
+library(outliers)
+library(EnvStats)
+library(PerformanceAnalytics)
+library(dplyr)
+```
+
+```{r}
+grubbs.test(data$H_SPORT,type=10, two.sided = TRUE)
+
+data |> 
+  filter(H_SPORT >= 16) |> 
+  count()
+```
+16 est un outlier pour H_SPORT
+```{r}
+grubbs.test(data$TRAJET,type=10, two.sided = TRUE)
+
+data |> 
+  filter(TRAJET >= 90) |> 
+  count()
+```
+90 est un outlier pour TRAJET
+```{r}
+grubbs.test(data$PARTAGE,type=10, two.sided = TRUE)
+
+data |> 
+  filter(PARTAGE >= 8) |> 
+  count()
+```
+8 est un outlier pour PARTAGE (4 fois 8 en valeur)
+
+```{r}
+grubbs.test(data$R_CUISINE,type=10, two.sided = TRUE)
+
+data |> 
+  filter(R_CUISINE >= 122) |> 
+  count()
+```
+122 est un outlier pour R_CUISINE (4)
+
+
+
+
+
+#### 3.b) Test de ROSNER
+```{r}
+rosnerTest(data$LOYER, k = 10, alpha = 0.05)
+```
+Pas de valeur atypique pour LOYER 
+
+```{r}
+rosnerTest(data$DEPENSE, k = 10, alpha = 0.05)
+
+```
+475 et 525 sont des valeurs atypiques pour DEPENSE
+
+```{r}
+rosnerTest(data$TRAJET_RU, k = 10, alpha = 0.05)
+
+```
+45 est un outlier pour TRAJET_RU
+```{r}
+rosnerTest(data$ECO_CONS, k = 10, alpha = 0.05)
+```
+Pas de valeur atypiques pour ECO_CONS
+
+```{r}
+rosnerTest(data$R_RU, k = 10, alpha = 0.05)
+```
+43 est un outlier pour R_RU
+
+## 04) Suppressions valeurs atypiques :
+
+```{r}
+
+data2 <- data
+data2 <- data2[data2$H_SPORT < 16, ]
+data2 <- data2[data2$TRAJET < 90, ]
+data2 <- data2[data2$PARTAGE < 8, ]
+data2 <- data2[data2$R_CUISINE < 122, ]
+data2 <- data2[data2$DEPENSE < 475, ]
+data2 <- data2[data2$TRAJET_RU < 45, ]
+data2 <- data2[data2$R_RU < 43, ]
+
+```
+
+## 05) Statistqiues decriptives et graphqiues sans les val atypiques 
+
+```{r}
+data2 |>
+  summarise(
+    across(
+      .cols = where(is.numeric),     
+      .fns  = list(
+        Moyenne    = ~mean(.x, na.rm = TRUE),
+        Médiane    = ~median(.x, na.rm = TRUE),
+        Minimum    = ~min(.x, na.rm = TRUE),
+        Maximum    = ~max(.x, na.rm = TRUE),
+        `Ecart-type` = ~sd(.x, na.rm = TRUE)
+      ),
+      .names = "{.col} {fn}"         
+    )
+  ) |>
+  pivot_longer(everything(),
+               names_to = "name",
+               values_to = "value") |>
+  separate_wider_delim(
+    name,
+    delim = " ",
+    names = c("Variable", "Mesure")
+  ) |>
+  mutate(value = round(value, 4)) |>
+  pivot_wider(
+    names_from  = Mesure,           
+    values_from = value
+  )
+```
+
+#----------------------------
+#Partie C : modèle linéaire
+
+## 01) Vérification de la corrélation entre les variables explicatives quantitatives
+
+#### Table :
+```{r}
+cor(
+  data2[, c("R_EXT", "R_CUISINE", "R_RU", "ECO_CONS", 
+            "PARTAGE", "LOYER")],
+  use = "complete.obs",
+  method = "spearman")
+```
+
+#### Graphqiuement : 
+
+```{r}
+library(PerformanceAnalytics)
+mydata <- data2[, c("R_EXT", "R_CUISINE", "R_RU", "ECO_CONS", "PARTAGE", "LOYER")]
+
+chart.Correlation(mydata, histogram = TRUE, pch = 19, method = "spearman")
+
+library(corrplot)
+corr_mat=cor(mydata,method="s")
+corrplot(corr_mat, 
+         method = 'number',
+         type="upper", 
+         tl.cex = 0.8,
+         number.cex = 0.7,
+         title = "Matrice de Corrélation (Spearman)",
+         mar = c(0, 0, 2, 0) )
+```
+
+## 02) Vérification de la corrélation entre les variables explicatives qualitatives
+
+```{r}
+library(rstatix)
+library(ggplot2)
+library(reshape2)
+
+```
+
+```{r}
+cramers_v <- function(x, y) {
+  tbl <- table(x, y)
+  chi2 <- suppressWarnings(chisq.test(tbl))
+  n <- sum(tbl)
+  phi2 <- chi2$statistic / n
+  r <- nrow(tbl)
+  k <- ncol(tbl)
+  V <- sqrt(phi2 / min(k - 1, r - 1))
+  return(as.numeric(V))
+}
+
+```
+
+```{r}
+qual_vars <- data2[, c("GENRE","SPORTIF","EMPLOI","BOURSIER","VEGE","RELI","AIDE_ALI", "PRIX_RU", "REVENU")]
+
+```
+
+```{r}
+n <- ncol(qual_vars)
+mat_cramer <- matrix(NA, n, n)
+colnames(mat_cramer) <- colnames(qual_vars)
+rownames(mat_cramer) <- colnames(qual_vars)
+
+for (i in 1:n) {
+  for (j in 1:n) {
+    mat_cramer[i, j] <- cramers_v(qual_vars[[i]], qual_vars[[j]])
+  }
+}
+
+```
+
+```{r}
+mat_melt <- melt(mat_cramer, na.rm = TRUE)
+
+ggplot(mat_melt, 
+       aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "steelblue", name = "Corrélation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Matrice de Corrélation dess Variables Qualitatives",
+       x = "Variable", y = "Variable")
+
+```
+ces corrélations ne sont pas surprenantes, car ce sont des variables liées par le fait que la modalité de référence dans ces variables est la même pour chaque paire de variables liées entre elles.
+
+## 03) Vérification de la qualité du modèle 
+
+```{r}
+data2$REVENU <- relevel(data2$REVENU, ref = "0-99€")
+
+
+```
+
+
+
+```{r}
+modele <- lm(DEPENSE ~ GENRE + SPORTIF + EMPLOI + BOURSIER + VEGE + RELI + AIDE_ALI + PRIX_RU + REVENU + R_EXT + R_CUISINE + R_RU + ECO_CONS + PARTAGE + LOYER, data=data2)
+modele0 <- (lm(DEPENSE~1,data=data2))
+summary(modele)
+```
+### Méthode ascendante
+
+```{r}
+step(modele0, 
+     scope=list(lower=modele0, upper=modele),
+     data=data2,
+     direction="forward")
+```
+
+### Méthode descendante
+
+```{r}
+step(modele, 
+     data=data2,
+     direction="backward")
+```
+### Méthode dans les deux sens
+```{r}
+
+step(modele0, 
+     scope = list(upper=modele),
+     data=data2,
+     direction="both")
+```
+on trouve le modèle suivant modele <- lm(formula = DEPENSE ~ R_EXT + BOURSIER + R_RU + PARTAGE + VEGE + RELI + PRIX_RU + AIDE_ALI + EMPLOI, data = data2) avec les trois méthodes
+
+#### estimation du modèle :
+
+```{r}
+modele <- lm(formula = DEPENSE ~ R_EXT + BOURSIER + R_RU + PARTAGE + VEGE + RELI + PRIX_RU + AIDE_ALI + EMPLOI, data = data2)
+
+summary(modele)
+```
+## 04) Test du modèle
+
+#### Normalité des résidus
+
+```{r}
+#graphiquement :
+qqnorm(rstandard(modele), 
+       main = "Q-Q Residuals", 
+       xlab = "Theoretical Quantiles", 
+       ylab = "Standardized residuals")
+qqline(rstandard(modele), col = "gray", lty = 2)
+
+#shapiro test
+library(stats)
+residus <- residuals(modele)
+shapiro.test(residus)
+```
+p-value < 0.05 donc rejet de l'hypothèse H0, nos résidus ne suivent pas une loi normale. cependant ici notre nombre d'observation étant > 30 (222) on peut accepter quand m^me
+
+#### RESET test
+```{r}
+library(lmtest)
+reset(modele)
+```
+p-value > 0.05 donc la forme fonctionnelle utilisé est la bonne au seuil de 5% (on ne rejette pas H0) 
+
+#### VIF test
+
+```{r}
+library(car)
+vif(modele)
+```
+Pas de problème de multicolinéarité car vif < 10 pour l'ensemble de nos variables explicatives
+
+#### BP test
+
+```{r}
+bptest(modele)
+```
+p-value > 0.05 nous ne rejetons pas H0, l’hypothèse d’homoscédasticité des résidus, au seuil de risque de 5%.
+
+#### Distance de COOK
+
+```{r}
+plot(modele, which = 5)
+plot(cooks.distance(modele),type="h")
+```
+Comme la distance de cook est <1, cela signifie qu'il n'y a pas d’observations influençant l'estimation du modèle
+
+## 05) Résumé de notre modèle :
+```{r}
+summary(modele)
+```
+R² = 0.6168	Environ 62 % de la variance de la dépense est expliquée par ces variables.	
+R² ajusté = 0.5992	En tenant compte du nombre de variables, le pouvoir explicatif réel reste bon (~60 %).	
+F-statistic = 35.06 (p < 2.2e−16)	Le modèle est globalement significatif — au moins une variable explicative influence significativement les DEPENSE.	
+Residual standard error = 49.4	L’écart-type des erreurs de prédiction est d’environ 49 €, donc la plupart des erreurs de prédiction sont de ±50 € autour de la valeur ajustée.
+
+
+Variables significatives (p < 0.05):
+
+R_EXT, R_RU → les dépenses alimentaires externes et au RU sont des moteurs majeurs de la dépense totale.
+
+BOURSIER → les boursiers dépensent beaucoup moins.
+
+PARTAGE → partage = réduction des dépenses.
+
+RELI et PRIX_RU → comportements culturels et perception des prix influencent la dépense.
+
+
+Variables marginalement significatives (0.05 < p < 0.10):
+
+AIDE_ALI → effet négatif possible, à confirmer.
+
+
+Variables non significatives:
+
+VEGE et EMPLOI → effets statistiquement non détectés
+
+#----------------------------
+# Partie C bis : hypothèse de l'endogéinité
+
+Notre modèle est le suivant modele_2ln <- lm(formula = LNDEPENSE ~ LNR_EXT + BOURSIER + LNR_RU + LNPARTAGE + VEGE + 
+    AIDE_ALI + EMPLOI, data = data4)
+    
+DEPENSE ~ R_EXT + BOURSIER + R_RU + PARTAGE + VEGE + RELI + PRIX_RU + AIDE_ALI + EMPLOI
+
+Variables possiblement endogène : 
+
+R_EXT : instruments = H_ETUDE, H_SPORT, H_TRAVAIL, TRAJET
+R_RU : instruments = TRAJET_RU et ATTENTE_RU
+EMPLOI : instrument = H_ETUDE
+
+
+
+## 02) Test weak des instruments
+```{r}
+library(AER)
+library(sandwich)
+library(survival)
+reg_DMC1<-ivreg(DEPENSE ~ R_EXT + BOURSIER + R_RU + PARTAGE + VEGE + RELI +
+    AIDE_ALI + EMPLOI | BOURSIER + PARTAGE + VEGE + RELI + AIDE_ALI + H_ETUDE + H_SPORT + H_TRAVAIL + TRAJET + TRAJET_RU + ATTENTE_RU, data=data2)
+
+summary(reg_DMC1, vcov = sandwich, diagnostics = TRUE)
+
+```
+
+
+LNR_EXT : p-value < 0.05 instrument faible
+LNR_RU : p-value < 0.05 instrument faible
+EMPLOIOui : p-value < 0.05 instrument pertinent 
+
+Les instruments utilisés sont valides au sens du test de Sargan (p = 0.8678), ce qui signifie qu’ils sont exogènes.
+
+Le test de Hausman ne détecte pas d’endogénéité globale (p = 0.40) donc on peut utiliser notre modèle des moindre carré.
+
+
+#----------------------------
+# Partie D: modèle sans les alternants
+
+On réalise un nouveau modèles en excluant l'ensemble des alternants de la base de données (ces derniers disposant du statu de salarié)
+
+## 01) Suppression des alternants
+
+```{r}
+data3 <- data[data$ALTERNANT != "Oui", ]
+```
+On a maintenant 165 observations
+
+## 02) Vérification de valeurs atypiques :
+
+```{r}
+library(tidyverse)
+### Graphique avec toutes les variables
+data3 |> 
+  pivot_longer(
+    cols = c(var_numérique),
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+
+#graphiques regroupé par variable (4 max)
+
+data3 |> 
+  pivot_longer(
+    cols = c("LOYER", "DEPENSE"),
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+
+data3 |> 
+  pivot_longer(
+    cols = c("R_RU", "R_CUISINE"),
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+
+data3 |> 
+  pivot_longer(
+    cols = c("TRAJET_RU", "TRAJET"),
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+
+data3 |> 
+  pivot_longer(
+    cols = c("PARTAGE", "H_SPORT"),
+    names_to = "variable",
+    values_to = "mesure"
+  ) |> 
+  ggplot() +
+  aes(
+    x = mesure
+  ) +
+  geom_boxplot() +
+  facet_wrap(~variable, scale="free") +
+  coord_flip() +
+  theme_classic()
+```
+
+#### Test de Grubbs :
+
+```{r}
+library(outliers)
+grubbs.test(data3$LOYER,type=10, two.sided = TRUE)
+
+data |> 
+  filter(LOYER >= 1250) |> 
+  count()
+```
+1250 est un outlier pour loyer (3 valeurs à 1250)
+
+```{r}
+
+grubbs.test(data3$R_CUISINE,type=10, two.sided = TRUE)
+
+data |> 
+  filter(R_CUISINE >= 122) |> 
+  count()
+```
+122 est un outlier pour cuisine (1 valeur)
+
+```{r}
+grubbs.test(data3$TRAJET,type=10, two.sided = TRUE)
+
+data |> 
+  filter(TRAJET >= 64) |> 
+  count()
+```
+64 est un outlier pour trajet 
+
+```{r}
+grubbs.test(data3$H_SPORT,type=10, two.sided = TRUE)
+
+data |> 
+  filter(H_SPORT >= 16) |> 
+  count()
+```
+16 est un outlier pour H_SPORT 
+
+```{r}
+grubbs.test(data3$PARTAGE,type=10, two.sided = TRUE)
+
+data |> 
+  filter(PARTAGE >= 8) |> 
+  count()
+```
+8 est un outlier pour PARTAGE 
+
+
+#### Test de ROSNER
+
+```{r}
+library(EnvStats)
+rosnerTest(data3$DEPENSE, k = 10, alpha = 0.05)
+```
+425 est un outlier pour DEPENSE
+
+```{r}
+rosnerTest(data3$R_RU, k = 10, alpha = 0.05)
+```
+43 est un outlier pour R_RU (et les valeurs supérieur aussi)
+ 
+```{r}
+rosnerTest(data3$TRAJET_RU, k = 10, alpha = 0.05)
+```
+
+41 est un outlier pour TRAJET_RU (et les valeurs supérieur aussi)
+
+
+#### Suppression de svaleurs atypiques
+
+```{r}
+
+data4 <- data3
+data4 <- data4[data4$LOYER < 1250, ]
+data4 <- data4[data4$H_SPORT < 16, ]
+data4 <- data4[data4$TRAJET < 64, ]
+data4 <- data4[data4$PARTAGE < 8, ]
+data4 <- data4[data4$R_CUISINE < 122, ]
+data4 <- data4[data4$DEPENSE < 425, ]
+data4 <- data4[data4$TRAJET_RU < 41, ]
+data4 <- data4[data4$R_RU < 43, ]
+
+```
+
+## 03) Statistiques descriptives sans les valeurs attypiques 
+
+```{r}
+
+data4 |>
+  summarise(
+    across(
+      .cols = where(is.numeric),     
+      .fns  = list(
+        Moyenne    = ~mean(.x, na.rm = TRUE),
+        Médiane    = ~median(.x, na.rm = TRUE),
+        Minimum    = ~min(.x, na.rm = TRUE),
+        Maximum    = ~max(.x, na.rm = TRUE),
+        `Ecart-type` = ~sd(.x, na.rm = TRUE)
+      ),
+      .names = "{.col} {fn}"         
+    )
+  ) |>
+  pivot_longer(everything(),
+               names_to = "name",
+               values_to = "value") |>
+  separate_wider_delim(
+    name,
+    delim = " ",
+    names = c("Variable", "Mesure")
+  ) |>
+  mutate(value = round(value, 4)) |>
+  pivot_wider(
+    names_from  = Mesure,           
+    values_from = value
+  )
+```
+
+compléter autre stats descrptives 
+
+
+## 04) Modèle linéaire (sans alternants)
+
+```{r}
+modele_2 <- lm(DEPENSE ~ GENRE + SPORTIF + EMPLOI + BOURSIER + VEGE + RELI + AIDE_ALI + PRIX_RU + REVENU + R_EXT + R_CUISINE + R_RU + ECO_CONS + PARTAGE + LOYER, data=data4)
+modele0_2 <- (lm(DEPENSE~1,data=data4))
+summary(modele_2)
+```
+
+
+### Méthode ascendante
+
+```{r}
+step(modele0_2, 
+     scope=list(lower=modele0_2, upper=modele_2),
+     data=data4,
+     direction="forward")
+```
+
+### Méthode descendante
+
+```{r}
+step(modele_2, 
+     data=data4,
+     direction="backward")
+```
+### Méthode dans les deux sens
+```{r}
+
+step(modele0_2, 
+     scope = list(upper=modele_2),
+     data=data4,
+     direction="both")
+```
+On trouve le modèle suivant avec les trois méthodes : lm(formula = DEPENSE ~ R_EXT + BOURSIER + R_RU + PARTAGE + VEGE + 
+    AIDE_ALI + EMPLOI, data = data4)
+    
+#### estimation u modèle sans alternants
+
+```{r}
+modele_2 <- lm(formula = DEPENSE ~ R_EXT + BOURSIER + R_RU + PARTAGE + VEGE + 
+    AIDE_ALI + EMPLOI, data = data4)
+```
+
+
+## 05) Test du modèle
+
+#### Normalité des résidus
+
+```{r}
+#graphiquement :
+qqnorm(rstandard(modele), 
+       main = "Q-Q Residuals", 
+       xlab = "Theoretical Quantiles", 
+       ylab = "Standardized residuals")
+qqline(rstandard(modele_2), col = "gray", lty = 2)
+
+#shapiro test
+library(stats)
+residus <- residuals(modele_2)
+shapiro.test(residus)
+```
+p-value < 0.05 donc rejet de l'hypothèse H0, nos résidus ne suivent pas une loi normale. cependant ici notre nombre d'observation étant > 30 (149 individus observés) on peut accepter quand m^me
+
+#### RESET test
+```{r}
+library(lmtest)
+reset(modele_2)
+```
+p-value < 0.05 donc la forme fonctionnelle utilisé n'est pas la bonne au seuil de 5% (on rejette H0). on va donc transformer les variables quantitatives et la varaibles à expliquer avec ln.
+
+# ----------------------------
+## Partie E: transformations des variables en ln
+
+```{r}
+
+
+data4$LNDEPENSE<-log(data4$DEPENSE + 1)
+data4$LNR_EXT<-log(data4$R_EXT + 1)
+data4$LNR_RU<-log(data4$R_RU + 1)
+data4$LNPARTAGE<-log(data4$PARTAGE + 1)
+
+#on ajoute +1 pour gérer les zéros
+
+```
+
+
+```{r}
+modele_2ln <- lm(formula = LNDEPENSE ~ LNR_EXT + BOURSIER + LNR_RU + LNPARTAGE + VEGE + 
+    AIDE_ALI + EMPLOI, data = data4)
+```
+
+
+#### RESET TEST
+```{r}
+
+library(lmtest)
+reset(modele_2ln)
+
+```
+p-value > 0.05 donc la forme fonctionnelle utilisé est la bonne au seuil de 5% (on ne rejette pas H0). 
+
+
+#### VIF test
+
+```{r}
+library(car)
+vif(modele_2ln)
+```
+Pas de problème de multicolinéarité car vif < 10 pour l'ensemble de nos variables explicatives
+
+#### BP test
+
+```{r}
+bptest(modele_2ln)
+```
+p-value < 0.05 nous rejetons H0, l’hypothèse d’homoscédasticité des résidus, au seuil de risque de 5%.
+
+
+
+#----------------------------
+
+# Partie E bis: modèle des moindres carrés quasi généralisés (à mettre apres la partie F)
+
+## 01) Récupérer les résidus et construire ln(res²)
+
+```{r}
+# 1) Résidus du modèle OLS
+res <- resid(modele_2ln)
+
+# 2) Carré des résidus
+data4$res2 <- res^2
+
+# 3) Logarithme du carré des résidus
+data4$ln_res2 <- log(data4$res2)
+```
+
+## 02 Variables sources d'hétéroscédasticité
+
+```{r}
+modele_het <- lm(ln_res2 ~ LNR_EXT + BOURSIER + LNR_RU + LNPARTAGE +
+                   VEGE + AIDE_ALI + EMPLOI,
+                 data = data4)
+
+summary(modele_het)
+
+```
+Boursier et LNPARTAGE sont sources d'hétéroscédasticité car p-value < 0,05 
+
+```{r}
+modele_het2 <- lm(ln_res2 ~ BOURSIER + LNPARTAGE, data = data4)
+summary(modele_het2)
+
+```
+
+
+## 03) Étape 3 – Construire la variance estimée et faire le FGLS (WLS dans R)
+
+```{r}
+# 1) Variance estimée : σ̂_i² = exp(ŷ_i)
+data4$sigma2_hat <- exp(fitted(modele_het2))
+
+# 2) FGLS / WLS : pondération = 1 / σ̂_i²
+modele_fgls <- lm(LNDEPENSE ~ LNR_EXT + BOURSIER + LNR_RU + LNPARTAGE +
+                    VEGE + AIDE_ALI + EMPLOI,
+                  data = data4,
+                  weights = 1 / sigma2_hat)
+
+
+```
+
+## 04) Nouveau modèle FGLS 
+
+```{r}
+summary(modele_2ln)$adj.r.squared
+summary(modele_fgls)$adj.r.squared
+
+```
+Comme le R carré ajusté du modèle des moindre carré quasi génralisé est supérieur à celui du modèle initial, le modèle s'est amélioré.
+
+
+```{r}
+summary(modele_fgls)
+```
+Interprétation :
+
+On a maintenant 4 variables expactatives au seuil de 5%. 
+
+
+
+#----------------------------
+# Partie F: hypothèse de l'endogéinité
+
+
+Notre modèle est le suivant modele_2ln <- lm(formula = LNDEPENSE ~ LNR_EXT + BOURSIER + LNR_RU + LNPARTAGE + VEGE + 
+    AIDE_ALI + EMPLOI, data = data4)
+
+Variables possiblement endogène : 
+
+LNR_EXT : instruments = H_ETUDE, H_SPORT, H_TRAVAIL, TRAJET
+LNR_RU : instruments = TRAJET_RU et ATTENTE_RU
+EMPLOI : instrument = H_ETUDE
+
+
+## 01) On transofrme les instruments en log
+
+```{r}
+
+
+
+data4$LNH_ETUDE<-log(data4$H_ETUDE + 1)
+data4$LNH_SPORT<-log(data4$H_SPORT + 1)
+data4$LNH_TRAVAIL<-log(data4$H_TRAVAIL + 1)
+data4$LNTRAJET<-log(data4$TRAJET + 1)
+data4$LNTRAJET_RU<-log(data4$TRAJET_RU + 1)
+data4$LNATTENTE_RU<-log(data4$ATTENTE_RU + 1)
+
+#on ajoute +1 pour gérer les zéros
+
+```
+
+
+## 02) Test weak des instruments
+```{r}
+library(AER)
+library(sandwich)
+library(survival)
+reg_DMC<-ivreg( LNDEPENSE ~ LNR_EXT + BOURSIER + LNR_RU + LNPARTAGE + VEGE + 
+    AIDE_ALI + EMPLOI | BOURSIER + LNPARTAGE + VEGE + AIDE_ALI + LNH_ETUDE + LNH_SPORT + LNH_TRAVAIL + LNTRAJET + LNTRAJET_RU + LNATTENTE_RU, data=data4)
+
+summary(reg_DMC, vcov = sandwich, diagnostics = TRUE)
+
+```
+
+
+#### Sans convertir les instruments en log
+
+```{r}
+library(AER)
+library(sandwich)
+library(survival)
+reg_DMC<-ivreg( LNDEPENSE ~ LNR_EXT + BOURSIER + LNR_RU + LNPARTAGE + VEGE + 
+    AIDE_ALI + EMPLOI | BOURSIER + LNPARTAGE + VEGE + AIDE_ALI + H_ETUDE + H_SPORT + H_TRAVAIL + TRAJET + TRAJET_RU + ATTENTE_RU, data=data4)
+
+summary(reg_DMC, vcov = sandwich, diagnostics = TRUE)
+```
+
+LNR_EXT : p-value > 0.05 instrument faible
+LNR_RU : p-value > 0.05 instrument faible
+EMPLOIOui : p-value < 0.05 instrument pertinent 
+
+Les instruments utilisés sont valides au sens du test de Sargan (p = 0.891), ce qui signifie qu’ils sont exogènes.
+En revanche, les tests WEAK instruments montrent que les instruments ne sont pas pertinents pour LNR_EXT et LNR_RU (p = 0.202 et 0.161).
+Les instruments sont en revanche très pertinents pour EMPLOI (p < 2e-16).
+Le test de Hausman ne détecte pas d’endogénéité globale (p = 0.29) donc on peut utiliser le modèle sans instruments
+
+Les tests montrent que :
+
+les instruments proposés pour LNR_EXT et LNR_RU sont faibles,
+seul l’instrument de EMPLOI est pertinent, mais cela ne suffit pas,
+le test de Sargan confirme l’exogénéité des instruments,
+le test de Hausman ne détecte aucune endogénéité dans le modèle (p = 0,29).
+
+-Nous ne disposons pas d’instruments suffisamment pertinents pour estimer un modèle IV fiable.
+
+-Les résultats indiquent qu’il n’y a pas d’endogénéité dans le modèle OLS (des moindres carrés).
+
+Donc on corrige l'hétéroscédasticté et on utilise le modèle modele_fgls comme modèle finale (celui dont on va interpréter les coefficients)
+
+
+
+
+```{r}
+data_clean <- na.omit(data[, c("DEPENSE", "R_RU")])
+
+library(reshape2)
+
+corr_spear <- cor(var_quanti, method = "spearman", use = "pairwise.complete.obs")
+
+ggplot(melt(corr_spear), aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "darkred", mid = "white", high = "darkblue") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Matrice de corrélation de Spearman")
+
+cor(var_quanti, method = "spearman")
+
+
+library(corrplot)
+
+# Sélection des variables quantitatives
+var_quanti <- data |> dplyr::select(where(is.numeric))
+
+# Corrélation Spearman
+corr_spear <- cor(var_quanti, method = "spearman", use = "pairwise.complete.obs")
+
+# Heatmap
+corrplot(corr_spear, method = "color",
+         type = "upper",
+         tl.cex = 0.7,
+         addCoef.col = "black",
+         number.cex = 0.5,
+         col = colorRampPalette(c("darkred", "white", "darkblue"))(200))
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(data, aes(x = as.factor(BOURSIER), y = DEPENSE)) +
+  geom_violin(fill = "lightblue", alpha = 0.7) +
+  geom_boxplot(width = 0.1, outlier.colour = "red") +
+  labs(title = "Dépenses selon le statut de boursier",
+       x = "Boursier (0 = Non, 1 = Oui)",
+       y = "Dépenses alimentaires") +
+  theme_classic()
+
+
+ggplot(data, aes(x = as.factor(EMPLOI), y = DEPENSE)) +
+  geom_violin(fill = "lightgreen", alpha = 0.7) +
+  geom_boxplot(width = 0.1, outlier.colour = "red") +
+  labs(title = "Dépenses selon emploi étudiant",
+       x = "Emploi (0 = Non, 1 = Oui)",
+       y = "Dépenses alimentaires") +
+  theme_classic()
+
+
+ggplot(data, aes(x = as.factor(VEGE), y = DEPENSE)) +
+  geom_violin(fill = "lightpink", alpha = 0.7) +
+  geom_boxplot(width = 0.1, outlier.colour = "red") +
+  labs(title = "Dépenses selon régime alimentaire",
+       x = "Végétarien (0 = Non, 1 = Oui)",
+       y = "Dépenses alimentaires") +
+  theme_classic()
+```
+
