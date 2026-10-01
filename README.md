@@ -1,6 +1,6 @@
 # Déterminants des dépenses alimentaires des étudiants
 
-Projet d'économétrie réalisé dans le cadre du Master 1 Économétrie Appliquée à l'IAE Nantes.
+Projet d'économétrie réalisé dans le cours d'économétrie linéaire avancée par Muriel Travers dans le Master 1 Économétrie Appliquée à l'IAE Nantes.
 
 L'objectif est d'identifier les principaux facteurs associés au montant mensuel des dépenses alimentaires des étudiants à partir de données collectées par questionnaire.
 
@@ -149,7 +149,7 @@ Projet universitaire réalisé par :
 - Samuel Le Nenes
 - Nassim Ikhelef
 
-Master 1 Économétrie Appliquée — IAE Nantes, 2025-2026.
+Master 1 Économétrie Appliquée — Économétrie linéaire avancée - IAE Nantes, 2025-2026.
 
 ## Contact
 
