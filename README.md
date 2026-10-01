@@ -149,7 +149,7 @@ Projet universitaire réalisé par :
 - Samuel Le Nenes
 - Nassim Ikhelef
 
-Master 1 Économétrie Appliquée — Économétrie linéaire avancée - IAE Nantes, 2025-2026.
+Master 1 Économétrie Appliquée — Économétrie linéaire avancée — IAE Nantes, 2025-2026.
 
 ## Contact
 
