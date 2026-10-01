@@ -9,9 +9,10 @@ library(dplyr)
 library(tidyverse)
 ```
 
-```{r}
-data1 <- read_excel("~/Desktop/Documents/FAC/M1/CM économétrie linéaire avancée/cc/data_V2.xlsx")
-```
+# Les données individuelles issues du questionnaire ne sont pas publiées dans ce dépôt afin de préserver la confidentialité des répondants.
+# Pour reproduire l'analyse avec les données originales : data1 <- read_excel("data/data_V2.xlsx")
+
+data <- data1
 
 ## 2) Nettoyage de la base de données 
 
@@ -33,16 +34,6 @@ data1$AGE <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$AGE)))
 
 
 ```
-
-### Sauvegarde de la base de donnée "nettoyé"
-
-```{r}
-library(writexl)
-write_xlsx(data1, path = "~/Desktop/Documents/FAC/M1/CM économétrie linéaire avancée/cc/data_V2_propre.xlsx")
-
-data <- read_excel("~/Desktop/Documents/FAC/M1/CM économétrie linéaire avancée/cc/data_V2_propre.xlsx")
-```
-
 
 ### Modification des variables
 
