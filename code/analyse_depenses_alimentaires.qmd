@@ -4,7 +4,6 @@
 ## 1) Importation des données 
 
 ```{r}
-
 library(readxl)
 library(dplyr)
 library(tidyverse)
@@ -14,7 +13,7 @@ library(tidyverse)
 # Une version anonymisée est fournie pour permettre la reproduction de l'analyse.
 
 data1 <- readxl::read_excel("data/donnees_anonymisees.xlsx")
-
+```
 ## 2) Nettoyage de la base de données 
 
 ```{r}
@@ -492,13 +491,25 @@ chart.Correlation(mydata, histogram = TRUE, pch = 19, method = "spearman")
 
 library(corrplot)
 corr_mat=cor(mydata,method="s")
-corrplot(corr_mat, 
-         method = 'number',
-         type="upper", 
-         tl.cex = 0.8,
-         number.cex = 0.7,
-         title = "Matrice de Corrélation (Spearman)",
-         mar = c(0, 0, 2, 0) )
+
+png(
+  "figures/correlation_spearman.png",
+  width = 1800,
+  height = 1400,
+  res = 200
+)
+
+corrplot(
+  corr_mat,
+  method = "number",
+  type = "upper",
+  tl.cex = 0.8,
+  number.cex = 0.7,
+  title = "Corrélations entre les variables quantitatives",
+  mar = c(0, 0, 2, 0)
+)
+
+dev.off()
 ```
 
 ## 02) Vérification de la corrélation entre les variables explicatives qualitatives
@@ -612,7 +623,7 @@ summary(modele)
 
 ```{r}
 #graphiquement :
-qqnorm(rstandard(modele_2), 
+qqnorm(rstandard(modele), 
        main = "Q-Q Residuals", 
        xlab = "Theoretical Quantiles", 
        ylab = "Standardized residuals")
@@ -990,7 +1001,7 @@ modele_2 <- lm(formula = DEPENSE ~ R_EXT + BOURSIER + R_RU + PARTAGE + VEGE +
 
 ```{r}
 #graphiquement :
-qqnorm(rstandard(modele), 
+qqnorm(rstandard(modele_2), 
        main = "Q-Q Residuals", 
        xlab = "Theoretical Quantiles", 
        ylab = "Standardized residuals")
@@ -1110,6 +1121,39 @@ modele_fgls <- lm(LNDEPENSE ~ LNR_EXT + BOURSIER + LNR_RU + LNPARTAGE +
 
 ```
 
+```{r}
+data4$prediction_fgls <- exp(predict(modele_fgls)) - 1
+
+p_prediction <- ggplot(
+  data4,
+  aes(x = DEPENSE, y = prediction_fgls)
+) +
+  geom_point(alpha = 0.6) +
+  geom_abline(
+    intercept = 0,
+    slope = 1,
+    linetype = "dashed"
+  ) +
+  labs(
+    title = "Dépenses observées et estimées par le modèle final",
+    x = "Dépenses observées (€)",
+    y = "Dépenses estimées (€)"
+  ) +
+  theme_classic()
+
+p_prediction
+
+ggsave(
+  "figures/predictions_modele_final.png",
+  plot = p_prediction,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+```
+
+
+
 ## 04) Nouveau modèle FGLS 
 
 ```{r}
@@ -1127,7 +1171,66 @@ Interprétation :
 
 On a maintenant 4 variables expactatives au seuil de 5%. 
 
+```{r}
+library(broom)
+library(ggplot2)
 
+# Extraction des coefficients et intervalles de confiance
+coef_fgls <- broom::tidy(
+  modele_fgls,
+  conf.int = TRUE,
+  conf.level = 0.95
+) |>
+  dplyr::filter(term != "(Intercept)") |>
+  dplyr::mutate(
+    variable = dplyr::recode(
+      term,
+      "LNR_EXT" = "Repas à l'extérieur",
+      "BOURSIEROui" = "Boursier",
+      "LNR_RU" = "Repas au restaurant universitaire",
+      "LNPARTAGE" = "Repas partagés",
+      "VEGEOui" = "Régime végétarien",
+      "AIDE_ALIOui" = "Aide alimentaire",
+      "EMPLOIOui" = "Emploi étudiant"
+    )
+  )
+
+# Graphique
+p_coefficients <- ggplot(
+  coef_fgls,
+  aes(
+    x = estimate,
+    y = reorder(variable, estimate)
+  )
+) +
+  geom_vline(
+    xintercept = 0,
+    linetype = "dashed",
+    colour = "grey50"
+  ) +
+  geom_errorbar(
+    aes(xmin = conf.low, xmax = conf.high),
+    width = 0.2
+  ) +
+  geom_point(size = 3) +
+  labs(
+    title = "Déterminants des dépenses alimentaires",
+    subtitle = "Coefficients estimés et intervalles de confiance à 95 %",
+    x = "Coefficient estimé",
+    y = NULL
+  ) +
+  theme_classic()
+
+p_coefficients
+
+ggsave(
+  "figures/coefficients_modele_final.png",
+  plot = p_coefficients,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+```
 
 #----------------------------
 # Partie F: hypothèse de l'endogéinité
@@ -1243,13 +1346,25 @@ cor(var_quanti, method = "spearman")
 ```{r}
 library(ggplot2)
 
-ggplot(data, aes(x = as.factor(BOURSIER), y = DEPENSE)) +
+p_boursier <- ggplot(data, aes(x = BOURSIER, y = DEPENSE)) +
   geom_violin(fill = "lightblue", alpha = 0.7) +
   geom_boxplot(width = 0.1, outlier.colour = "red") +
-  labs(title = "Dépenses selon le statut de boursier",
-       x = "Boursier (0 = Non, 1 = Oui)",
-       y = "Dépenses alimentaires") +
+  labs(
+    title = "Dépenses alimentaires selon le statut de boursier",
+    x = "Statut de boursier",
+    y = "Dépenses alimentaires mensuelles (€)"
+  ) +
   theme_classic()
+
+p_boursier
+
+ggsave(
+  "figures/depenses_boursier.png",
+  plot = p_boursier,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
 
 
 ggplot(data, aes(x = as.factor(EMPLOI), y = DEPENSE)) +
