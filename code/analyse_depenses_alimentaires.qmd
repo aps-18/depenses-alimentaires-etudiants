@@ -4,15 +4,16 @@
 ## 1) Importation des données 
 
 ```{r}
+
 library(readxl)
 library(dplyr)
 library(tidyverse)
-```
 
-# Les données individuelles issues du questionnaire ne sont pas publiées dans ce dépôt afin de préserver la confidentialité des répondants.
-# Pour reproduire l'analyse avec les données originales : data1 <- read_excel("data/data_V2.xlsx")
+# Les données originales issues du questionnaire ne sont pas publiées afin de préserver la confidentialité des répondants.
 
-data <- data1
+# Une version anonymisée est fournie pour permettre la reproduction de l'analyse.
+
+data1 <- readxl::read_excel("data/donnees_anonymisees.xlsx")
 
 ## 2) Nettoyage de la base de données 
 
@@ -32,7 +33,7 @@ data1$ATTENTE_RU <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$ATTENTE_
 data1$ECO_CONS <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$ECO_CONS)))
 data1$AGE <- as.numeric(gsub(",", ".", gsub("[^0-9,]", "", data1$AGE)))
 
-
+data <- data1
 ```
 
 ### Modification des variables
@@ -611,7 +612,7 @@ summary(modele)
 
 ```{r}
 #graphiquement :
-qqnorm(rstandard(modele), 
+qqnorm(rstandard(modele_2), 
        main = "Q-Q Residuals", 
        xlab = "Theoretical Quantiles", 
        ylab = "Standardized residuals")
@@ -1214,18 +1215,6 @@ Donc on corrige l'hétéroscédasticté et on utilise le modèle modele_fgls com
 data_clean <- na.omit(data[, c("DEPENSE", "R_RU")])
 
 library(reshape2)
-
-corr_spear <- cor(var_quanti, method = "spearman", use = "pairwise.complete.obs")
-
-ggplot(melt(corr_spear), aes(Var1, Var2, fill = value)) +
-  geom_tile() +
-  scale_fill_gradient2(low = "darkred", mid = "white", high = "darkblue") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(title = "Matrice de corrélation de Spearman")
-
-cor(var_quanti, method = "spearman")
-
-
 library(corrplot)
 
 # Sélection des variables quantitatives
@@ -1241,6 +1230,14 @@ corrplot(corr_spear, method = "color",
          addCoef.col = "black",
          number.cex = 0.5,
          col = colorRampPalette(c("darkred", "white", "darkblue"))(200))
+
+ggplot(melt(corr_spear), aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "darkred", mid = "white", high = "darkblue") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Matrice de corrélation de Spearman")
+
+cor(var_quanti, method = "spearman")
 ```
 
 ```{r}
