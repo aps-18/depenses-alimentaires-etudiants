@@ -155,4 +155,4 @@ Master 1 Économétrie Appliquée — Économétrie linéaire avancée — IAE N
 
 **Amélie Pires**
 
-[Mail : amelie.pires@hotmail.com](mailto:amelie.pires@hotmail.com) · [LinkedIn](https://www.linkedin.com/in/amelie-pires) · [GitHub](https://github.com/aps-18)
+Mail : [amelie.pires@hotmail.com](mailto:amelie.pires@hotmail.com) · [LinkedIn](https://www.linkedin.com/in/amelie-pires) · [GitHub](https://github.com/aps-18)
